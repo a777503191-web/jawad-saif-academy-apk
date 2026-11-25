@@ -2,7 +2,8 @@ name: Build Jawad & Saif Academy APK
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -21,61 +22,35 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Setup Java 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Unpack raw.zip into public/assets
         run: |
           mkdir -p src public/assets
           if [ -f raw.zip ]; then
-            python3 - << 'PYEOF'
-import zipfile, os
-try:
-    with zipfile.ZipFile('raw.zip', 'r') as zf:
-        for info in zf.infolist():
-            if info.is_dir():
-                continue
-            name = info.filename
-            if name.startswith('raw/'):
-                name = name[4:]
-            base = os.path.basename(name)
-            if not base:
-                continue
-            out_path = os.path.join('public/assets', base)
-            with open(out_path, 'wb') as f:
-                f.write(zf.read(info.filename))
-    print('Unpacked assets count:', len(os.listdir('public/assets')))
-except Exception as e:
-    print('raw.zip extract error:', e)
-PYEOF
+            python3 -c "import zipfile, os; z=zipfile.ZipFile('raw.zip'); [open(os.path.join('public/assets', os.path.basename(i.filename[4:] if i.filename.startswith('raw/') else i.filename)), 'wb').write(z.read(i.filename)) for i in z.infolist() if not i.is_dir() and os.path.basename(i.filename[4:] if i.filename.startswith('raw/') else i.filename)]" || true
           fi
+          ls -la public/assets || true
 
       - name: Install dependencies and build web bundle
         run: |
           npm install --no-audit --no-fund
           npm run build
           mkdir -p dist/assets
-          cp -rn public/assets/* dist/assets/ 2>/dev/null || true
+          cp -r public/assets/* dist/assets/ 2>/dev/null || true
 
       - name: Setup Capacitor Android
         run: |
           npx cap add android || true
           npx cap sync android
-          python3 - << 'PYEOF'
-import os
-p = 'android/app/src/main/AndroidManifest.xml'
-if os.path.exists(p):
-    s = open(p, encoding='utf-8').read()
-    perm = '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
-    if perm not in s:
-        s = s.replace('<application', perm + '\n    <application', 1)
-    open(p, 'w', encoding='utf-8').write(s)
-PYEOF
+          python3 -c "import os; p='android/app/src/main/AndroidManifest.xml'; s=open(p,encoding='utf-8').read(); perm='<uses-permission android:name="android.permission.RECORD_AUDIO" />'; open(p,'w',encoding='utf-8').write(s.replace('<application', perm+'
+    <application', 1) if os.path.exists(p) and perm not in s else s)"
 
       - name: Assemble Debug APK
         run: |
