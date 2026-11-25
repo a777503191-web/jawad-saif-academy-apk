@@ -30,23 +30,26 @@ jobs:
         run: |
           mkdir -p src public/assets
           if [ -f raw.zip ]; then
-            python3 -c "
+            python3 - << 'PYEOF'
 import zipfile, os
-with zipfile.ZipFile('raw.zip', 'r') as zf:
-    for info in zf.infolist():
-        if info.is_dir():
-            continue
-        name = info.filename
-        if name.startswith('raw/'):
-            name = name[4:]
-        base = os.path.basename(name)
-        if not base:
-            continue
-        out_path = os.path.join('public/assets', base)
-        with open(out_path, 'wb') as f:
-            f.write(zf.read(info.filename))
-print('Unpacked assets count:', len(os.listdir('public/assets')))
-"
+try:
+    with zipfile.ZipFile('raw.zip', 'r') as zf:
+        for info in zf.infolist():
+            if info.is_dir():
+                continue
+            name = info.filename
+            if name.startswith('raw/'):
+                name = name[4:]
+            base = os.path.basename(name)
+            if not base:
+                continue
+            out_path = os.path.join('public/assets', base)
+            with open(out_path, 'wb') as f:
+                f.write(zf.read(info.filename))
+    print('Unpacked assets count:', len(os.listdir('public/assets')))
+except Exception as e:
+    print('raw.zip extract error:', e)
+PYEOF
           fi
 
       - name: Install dependencies and build web bundle
@@ -58,7 +61,7 @@ print('Unpacked assets count:', len(os.listdir('public/assets')))
         run: |
           npx cap add android || true
           npx cap sync android
-          python3 -c "
+          python3 - << 'PYEOF'
 import os
 p = 'android/app/src/main/AndroidManifest.xml'
 if os.path.exists(p):
@@ -68,7 +71,7 @@ if os.path.exists(p):
         s = s.replace('<application', perm + '
     <application', 1)
     open(p, 'w', encoding='utf-8').write(s)
-"
+PYEOF
 
       - name: Assemble Debug APK
         run: |
