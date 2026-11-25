@@ -8,6 +8,9 @@ on:
 permissions:
   contents: write
 
+env:
+  CI: "true"
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -54,8 +57,10 @@ PYEOF
 
       - name: Install dependencies and build web bundle
         run: |
-          npm install
+          npm install --no-audit --no-fund
           npm run build
+          mkdir -p dist/assets
+          cp -rn public/assets/* dist/assets/ 2>/dev/null || true
 
       - name: Setup Capacitor Android
         run: |
@@ -77,7 +82,7 @@ PYEOF
         run: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
