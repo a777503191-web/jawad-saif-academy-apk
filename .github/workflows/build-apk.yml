@@ -73,8 +73,7 @@ if os.path.exists(p):
     s = open(p, encoding='utf-8').read()
     perm = '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
     if perm not in s:
-        s = s.replace('<application', perm + '
-    <application', 1)
+        s = s.replace('<application', perm + '\n    <application', 1)
     open(p, 'w', encoding='utf-8').write(s)
 PYEOF
 
