@@ -28,7 +28,7 @@ jobs:
 
       - name: Unpack raw.zip into public/assets
         run: |
-          mkdir -p public/assets
+          mkdir -p src public/assets
           if [ -f raw.zip ]; then
             python3 -c "
 import zipfile, os
@@ -45,7 +45,7 @@ with zipfile.ZipFile('raw.zip', 'r') as zf:
         out_path = os.path.join('public/assets', base)
         with open(out_path, 'wb') as f:
             f.write(zf.read(info.filename))
-print('Extracted raw.zip into public/assets:', len(os.listdir('public/assets')))
+print('Unpacked assets count:', len(os.listdir('public/assets')))
 "
           fi
 
@@ -58,15 +58,16 @@ print('Extracted raw.zip into public/assets:', len(os.listdir('public/assets')))
         run: |
           npx cap add android || true
           npx cap sync android
-          if [ -f android/app/src/main/AndroidManifest.xml ]; then
-            python3 -c "
+          python3 -c "
+import os
 p = 'android/app/src/main/AndroidManifest.xml'
-s = open(p, encoding='utf-8').read()
-perm = '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
-if perm not in s:
-    s = s.replace('<application', perm + '
+if os.path.exists(p):
+    s = open(p, encoding='utf-8').read()
+    perm = '<uses-permission android:name="android.permission.RECORD_AUDIO" />'
+    if perm not in s:
+        s = s.replace('<application', perm + '
     <application', 1)
-open(p, 'w', encoding='utf-8').write(s)
+    open(p, 'w', encoding='utf-8').write(s)
 "
 
       - name: Assemble Debug APK
